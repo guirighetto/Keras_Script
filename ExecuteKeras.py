@@ -1,5 +1,4 @@
 #!-*- conding: utf8 -*-
-
 import theano
 from keras import backend as K
 from keras.models import Sequential
@@ -13,67 +12,83 @@ from sklearn.metrics import accuracy_score as acc
 import random
 import addOns as add
 import numpy as np
+import sys
 
-
-
-np.random.seed(1337) # for reproducibility ## uat???
+np.random.seed(1337)
 
 # PARAMETERS
-
-pathImages = '/home/guilherme/Documentos/Bases/BFL_50_128_105/'
-imagesFormat = '.bmp'
-numImgClass = 3
-train = 60
-test = 40
-classes = 50
-epoch = 30
-batchSize = 48
-numblock = 105
-blockHeight = 128
-blockWidth = 128
-preName = "CF"
-sep="_"
-channelsImg = 1
+try:
+	if(sys.argv[1] != None):
+		path_images = sys.argv[1]
+		path_weights = sys.argv[2]
+		images_format = '.bmp'
+		nb_img_class = sys.argv[3]
+		train = 60
+		test = 40
+		classes = sys.argv[4]
+		epoch = 30
+		batch_size = 48
+		nb_block = sys.argv[5]
+		block_height = sys.argv[6]
+		block_width = sys.argv[6]
+		preName = "CF"
+		sep="_"
+		channels_img = 1
+except:
+	path_images = "../FolderImages"
+	path_weights = "../file_weights.hdf5"
+	images_format = '.bmp'
+	nb_img_class = 3
+	train = 60
+	test = 40
+	classes = 50
+	epoch = 30
+	batch_size = 48
+	nb_block = 105
+	block_height = 128
+	block_width = 128
+	preName = "CF"
+	sep="_"
+	channels_img = 1
 
 
 def loadDatabase():
-
-	numSamplesTrain = float(numImgClass*(float(train)/100))
+	numSamplesTrain = float(nb_img_class*(float(train)/100))
 	numSamplesTrain = round(numSamplesTrain)
 
 	dataTrain = []
 	labelTrain = []
 	dataTest = []
 	labelTest = []
-	filesTest = []
+	samples_test = []
 	filesCount = 0
 	patchesCount = 0
 
 	for c in range(1,classes+1):
-		filesTest.append([])
+		samples_test.append([])
 
-		for s in range(1,numImgClass+1):
+		for s in range(1,nb_img_class+1):
 
 			if(s < numSamplesTrain+1):
-				folderTrainTest = 'Treino/'
+				folderTrainTest = 'Train/'
 			else:
-				folderTrainTest = 'Teste/'
+				folderTrainTest = 'Test/'
 
-			for b in range(1,numblock+1):
+			for b in range(1,nb_block+1):
 				nameImg = preName + str(c).zfill(5) + sep + str(s) + sep + str(b)
 				folderClass = preName + str(c).zfill(5) + '/'
-				fullPathImg = pathImages + folderClass + folderTrainTest + nameImg + imagesFormat
+				fullPathImg = path_images + folderClass + folderTrainTest + nameImg + images_format
 				image = plt.imread(fullPathImg)
 
 				image = image[np.newaxis]
 
-				if(folderTrainTest == 'Treino/'):
+				if(folderTrainTest == 'Train/'):
 					dataTrain.append(image)
 					labelTrain.append(c-1)
 				else:
 					dataTest.append(image)
 					labelTest.append(c-1)
-					filesTest[filesCount].append(patchesCount)
+					samples_test[filesCount].append(patchesCount)
 					patchesCount += 1
 		filesCount+=1
 
@@ -92,21 +107,21 @@ def loadDatabase():
 	#test		
 	dataTest = np.array(dataTest)
 	labelTest = np.array(labelTest)
-	filesTest = np.array(filesTest)
+	samples_test = np.array(samples_test)
 
 	X_Test = dataTest.astype("float32")/255
 	Y_Test = np_utils.to_categorical(labelTest, classes)
 
-	print("Number samples train: ",numSamplesTrain*numblock*classes)
-	print("Number samples test: ",(numImgClass-numSamplesTrain)*numblock*classes)		
+	print("Number samples train: ",numSamplesTrain*nb_block*classes)
+	print("Number samples test: ",(nb_img_class-numSamplesTrain)*nb_block*classes)		
 
-	return X_Train, Y_Train, X_Test, Y_Test, filesTest
+	return X_Train, Y_Train, X_Test, Y_Test, samples_test
 
 
 def buildModel():
 	model = Sequential()
 
-	model.add(Convolution2D(32, 3, 3, activation='relu', name='conv1_1',input_shape=(channelsImg, blockHeight, blockWidth), border_mode='same'))
+	model.add(Convolution2D(32, 3, 3, activation='relu', name='conv1_1',input_shape=(channels_img, block_height, block_width), border_mode='same'))
 
 	model.add(MaxPooling2D(pool_size=(2,2), strides=(2,2)))
 
@@ -130,7 +145,7 @@ def buildModel():
 
 	model.add(Flatten())
 
-	model.add(Dense(500))
+	model.add(Dense(2048))
 	model.add(Activation("relu"))
 
 	model.add(Dropout(0.5))
@@ -140,42 +155,13 @@ def buildModel():
 
 	return model
 
-
-def buildModel2():
-	model = Sequential()
-
-	model.add(Convolution2D(64, 5, 5, activation='relu', name='conv1_1',input_shape=(channelsImg, blockHeight, blockWidth), border_mode='same'))
-
-	model.add(MaxPooling2D(pool_size=(2,2), strides=(2,2)))
-
-	model.add(Convolution2D(64, 5, 5, border_mode='same'))
-	model.add(Activation('relu'))
-
-	model.add(MaxPooling2D(pool_size=(2,2), strides=(2,2)))
-
-	model.add(Convolution2D(64, 3, 3, border_mode='same'))
-	model.add(Activation('relu'))
-
-	model.add(MaxPooling2D(pool_size=(2,2), strides=(2,2)))
-
-	model.add(Flatten())
-
-	model.add(Dense(500))
-	model.add(Activation("relu"))
-
-	model.add(Dropout(0.5))
-
-	model.add(Dense(classes))
-	model.add(Activation("softmax"))
-
-	return model
 
 def evaluateModel(model, X_Train, Y_Train, X_Test, Y_Test):
 	fakeScoreSeg = model.evaluate(X_Train, Y_Train, verbose=1)
 	scoreSeg = model.evaluate(X_Test, Y_Test, verbose=1)
 
 	print()
-	print('CLASSIFICACAO DE CADA SEGMENTO:')
+	print('CLASSIFICATION OF EACH SEGMENT (block):')
 	print('Train score:', fakeScoreSeg[0])
 	print('Train accuracy:', fakeScoreSeg[1])
 	print('Test score:', scoreSeg[0])
@@ -186,55 +172,35 @@ def evaluateModel(model, X_Train, Y_Train, X_Test, Y_Test):
 
 	return predict
 
-def combinationPredict(predict, filesTest):
-	labelsAmostras, fusaoMin, fusaoMax, fusaoSom, fusaoPro = add.fusoesDiego(predict, filesTest)
+def combinationPredict(predict, samples_test):
+	labels_samples, merger_min, merger_max, merger_sum, merger_pro = add.fusoesDiego(predict, samples_test)
 
 	classSeg = np_utils.categorical_probas_to_classes(predict)
-	classMin = np_utils.categorical_probas_to_classes(fusaoMin)	
-	classMax = np_utils.categorical_probas_to_classes(fusaoMax)
-	classSom = np_utils.categorical_probas_to_classes(fusaoSom)
-	classPro = np_utils.categorical_probas_to_classes(fusaoPro)
+	classMin = np_utils.categorical_probas_to_classes(merger_min)	
+	classMax = np_utils.categorical_probas_to_classes(merger_max)
+	classSom = np_utils.categorical_probas_to_classes(merger_sum)
+	classPro = np_utils.categorical_probas_to_classes(merger_pro)
 
 	print ()
-	print ("minimo: " + str(acc(labelsAmostras,classMin)))
-	print ("maximo: " + str(acc(labelsAmostras,classMax)))
-	print ("soma: " + str(acc(labelsAmostras,classSom)))
-	print ("produto: " + str(acc(labelsAmostras,classPro)))
+	print ("Min: " + str(acc(labels_samples,classMin)))
+	print ("Max: " + str(acc(labels_samples,classMax)))
+	print ("Sum: " + str(acc(labels_samples,classSom)))
+	print ("Product: " + str(acc(labels_samples,classPro)))
 	print ()
-
-
-def predict2svm(predict):
-	f = open('/home/guilherme/Documentos/CNN/Script/BFL_50_1.predict','w')
-	f.write('labels ')
-	for c in range(classes):
-		f.write(str(c+1)+' ')
-	f.write('\n')
-	i=0
-	for p in predict:
-		f.write(str(np.argmax(p)+1)+' ')
-		for pi in p:
-			if(i == classes-1):
-				f.write(str(pi))
-			else:
-				f.write(str(pi)+' ')
-			i+=1
-		i=0
-		f.write('\n')
-	f.close()	
 
 if __name__ == "__main__":
 	
-	X_Train, Y_Train, X_Test, Y_Test, filesTest = loadDatabase()
+	X_Train, Y_Train, X_Test, Y_Test, samples_test = loadDatabase()
 
 	print("Database successfully loaded")
 	print("Loading model")
-	model = buildModel2()
+	model = buildModel()
 	model.summary()
-	#model.outputs()
 	print("Running the model")
 	model.compile(loss="categorical_crossentropy", optimizer="Adadelta",metrics=['accuracy'])
-	model.fit(X_Train, Y_Train, nb_epoch=epoch, batch_size=batchSize, verbose=1, validation_data=(X_Test, Y_Test))
+	model.fit(X_Train, Y_Train, nb_epoch=epoch, batch_size=batch_size, verbose=1, validation_data=(X_Test, Y_Test))
+	print("Validation of the model")
 	predict = evaluateModel(model, X_Train, Y_Train, X_Test, Y_Test)
-	predict2svm(predict)
-	combinationPredict(predict, filesTest)
-	#model.save_weights("/local/home/projeto/Exp_Righetto/Script/BFL_50_128_weight.hdf5")
+	combinationPredict(predict, samples_test)
+	print("Saving the weights")
+	model.save_weights(path_weights)
