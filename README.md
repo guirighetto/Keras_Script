@@ -1,6 +1,9 @@
 # ExtractFeatWeight
+
 OUTPUT FORMAT FILES:
+
    Diss = True: feat_1 feat_2 feat_3 ... feat_n class_1
+   
                 feat_1 feat_2 feat_3 ... feat_n class_2
                                                       .
                                                       .
